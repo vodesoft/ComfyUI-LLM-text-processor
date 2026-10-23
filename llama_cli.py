@@ -46,6 +46,16 @@ def tensor_to_temp_pngs(image) -> list[Path]:
     return [_tensor_to_temp_png(image)]
 
 
+def images_to_temp_pngs(images) -> list[Path]:
+    # Each connected image may itself be a single image or a batch. Flatten in
+    # socket order so llama.cpp receives every connected image.
+    paths: list[Path] = []
+    for image in images:
+        if image is not None:
+            paths.extend(tensor_to_temp_pngs(image))
+    return paths
+
+
 def _write_temp_text_file(prefix: str, text: str) -> Path:
     fd, path = tempfile.mkstemp(prefix=prefix, suffix=".txt")
     os.close(fd)
@@ -78,7 +88,7 @@ def build_command(
     model_path: Path,
     mmproj_path: Path | None,
     system_prompt_path: Path | None,
-    image,
+    images,
     prompt: str,
     max_tokens: int,
     temperature: float,
@@ -96,10 +106,11 @@ def build_command(
     cleanup_paths = []
     cli_paths = ensure_llama_cli_paths()
     image_paths = []
-    if image is not None:
+    connected_images = [img for img in images if img is not None] if images else []
+    if connected_images:
         if mmproj_path is None:
             raise ValueError("Image input requires a selected mmproj GGUF file.")
-        image_paths = tensor_to_temp_pngs(image)
+        image_paths = images_to_temp_pngs(connected_images)
         cleanup_paths.extend(image_paths)
 
     prompt_path = _write_prompt_file(prompt)

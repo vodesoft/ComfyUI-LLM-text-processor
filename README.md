@@ -6,7 +6,8 @@ Qwen3-VL, Qwen3.5, Qwen3.6, Qwen3.7, Qwen3.8, Gemma 4, and gpt-oss.
 This extension adds a local LLM node for prompt writing, prompt rewriting,
 translation, captioning, extraction, and other text processing tasks inside
 ComfyUI. It discovers local GGUF models from `ComfyUI/models/LLM`, and it can
-also accept a single image or a ComfyUI image batch for multimodal models that
+also accept up to four image inputs, each a single image or a ComfyUI image
+batch, for multimodal models that
 use an external `mmproj`.
 
 ![Node UI](https://raw.githubusercontent.com/KingManiya/ComfyUI-LLM-text-processor/refs/heads/images/images/node.png)
@@ -14,8 +15,8 @@ use an external `mmproj`.
 ## Features
 
 - Text generation and text transformation with local GGUF models
-- Optional image input for multimodal llama.cpp models that use `mmproj`,
-  including multi-image batches
+- Optional image inputs for multimodal llama.cpp models that use `mmproj`,
+  including up to four image sockets and multi-image batches
 - Separate `RESPONSE` and `REASONING` outputs
 - System prompt presets from text files
 - Recursive model discovery from `ComfyUI/models/LLM`
@@ -108,8 +109,9 @@ The `model` dropdown shows model `.gguf` files. The `mmproj` dropdown shows
 vision projector files and `none`.
 
 For image workflows, choose the `mmproj` file that belongs to the selected
-model. You can connect either one image or a ComfyUI image batch; batch items
-are sent together in the same llama.cpp request.
+model. The node has four optional image sockets, `image1` to `image4`. Each
+connected socket may be a single image or a ComfyUI image batch, and every
+connected image is sent together in the same llama.cpp request.
 
 ## System Prompt Presets
 
@@ -222,7 +224,10 @@ Reference: [gpt-oss docs](https://github.com/openai/gpt-oss)
 | `seed` | Random seed. Use `-1` for a random seed. |
 | `timeout_seconds` | Maximum runtime before generation is stopped. |
 | `reasoning` | Reasoning output mode: `auto`, `on`, or `off`. |
-| `image` | Optional image input. Accepts a single image or a ComfyUI batch, and sends the batch together to llama.cpp. |
+| `image1` | Optional first image input. Accepts a single image or a ComfyUI batch, and sends it together to llama.cpp. |
+| `image2` | Optional second image input. Used only when connected. |
+| `image3` | Optional third image input. Used only when connected. |
+| `image4` | Optional fourth image input. Used only when connected. |
 | `enable_processing` | When enabled, the node runs normally. When disabled, the node forwards `prompt` directly to `RESPONSE` and skips all model checks and llama.cpp execution. |
 | `extra_args` | Optional advanced llama.cpp parameters. Leave empty for normal use. |
 

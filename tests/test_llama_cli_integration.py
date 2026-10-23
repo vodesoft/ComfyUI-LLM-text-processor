@@ -115,7 +115,7 @@ class LlamaCliIntegrationTests(unittest.TestCase):
                         model_path=self.model,
                         mmproj_path=self.mmproj if image else None,
                         system_prompt_path=self.system_prompt_path if system else None,
-                        image=self.image if image else None,
+                        images=(self.image if image else None,),
                         prompt=prompt,
                         max_tokens=1024 if fits else 8,
                         temperature=0,

@@ -120,8 +120,17 @@ class LLMTextProcessor:
                 }),
             },
             "optional": {
-                "image": ("IMAGE", {
-                    "tooltip": "Optional image input. A single image or ComfyUI batch is passed to llama.cpp.",
+                "image1": ("IMAGE", {
+                    "tooltip": "Optional first image input. A single image or ComfyUI batch is passed to llama.cpp.",
+                }),
+                "image2": ("IMAGE", {
+                    "tooltip": "Optional second image input. Used only when connected.",
+                }),
+                "image3": ("IMAGE", {
+                    "tooltip": "Optional third image input. Used only when connected.",
+                }),
+                "image4": ("IMAGE", {
+                    "tooltip": "Optional fourth image input. Used only when connected.",
                 }),
                 "enable_processing": ("BOOLEAN", {
                     "default": True,
@@ -174,7 +183,10 @@ class LLMTextProcessor:
         seed: int,
         timeout_seconds: int,
         reasoning: str,
-        image=None,
+        image1=None,
+        image2=None,
+        image3=None,
+        image4=None,
         enable_processing: bool = True,
         extra_args: str = "",
     ):
@@ -203,7 +215,7 @@ class LLMTextProcessor:
             model_path=model_path,
             mmproj_path=mmproj_path,
             system_prompt_path=system_prompt_path,
-            image=image,
+            images=(image1, image2, image3, image4),
             prompt=prompt,
             max_tokens=max_tokens,
             temperature=temperature,
