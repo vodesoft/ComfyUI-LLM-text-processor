@@ -13,6 +13,38 @@ NO_MMPROJ = "none"
 NO_MODELS_FOUND = "No GGUF models found"
 
 
+# Standard model-type keys. ComfyUI (and the Desktop "Storage -> Models"
+# settings) register every model root -- the main folder and any shared
+# directories -- under these keys. The parent of each registered path is a
+# model root, so we scan the LLM subfolder inside all of them.
+STANDARD_MODEL_KEYS = (
+    "checkpoints",
+    "configs",
+    "loras",
+    "vae",
+    "vae_approx",
+    "text_encoders",
+    "diffusion_models",
+    "clip_vision",
+    "style_models",
+    "embeddings",
+    "controlnet",
+    "gligen",
+    "upscale_models",
+    "latent_upscale_models",
+    "hypernetworks",
+    "photomaker",
+    "classifiers",
+    "model_patches",
+    "audio_encoders",
+    "background_removal",
+    "frame_interpolation",
+    "geometry_estimation",
+    "optical_flow",
+    "detection",
+)
+
+
 def llm_root() -> Path:
     return Path(folder_paths.models_dir) / "LLM"
 
@@ -21,30 +53,41 @@ def prompt_root() -> Path:
     return llm_root() / "prompts"
 
 
+def model_roots() -> list[Path]:
+    roots: list[Path] = [Path(folder_paths.models_dir)]
+    for key in STANDARD_MODEL_KEYS:
+        for path in folder_paths.get_folder_paths(key):
+            root = Path(path).parent
+            if root not in roots:
+                roots.append(root)
+    return roots
+
+
 def register_folders() -> None:
-    llm_dir = llm_root()
-    prompts_dir = prompt_root()
-    llm_dir.mkdir(parents=True, exist_ok=True)
-    prompts_dir.mkdir(parents=True, exist_ok=True)
+    llm_root().mkdir(parents=True, exist_ok=True)
+    prompt_root().mkdir(parents=True, exist_ok=True)
 
     # ComfyUI's add_model_folder_path cannot set extensions for a new key, so we
     # register the custom keys directly with the same tuple shape ComfyUI uses.
-    # The main folder is inserted at the front so it stays the primary source,
-    # while any shared model directories already registered through
-    # extra_model_paths.yaml are preserved behind it.
-    _register_folder_path(LLM_FOLDER, str(llm_dir), {".gguf"})
-    _register_folder_path(PROMPT_FOLDER, str(prompts_dir), {".txt", ".md"})
+    # The LLM subfolder is registered for every model root: the main folder first,
+    # then any shared directories added through the Desktop "Storage -> Models"
+    # settings or extra_model_paths.yaml. The main folder stays the primary source.
+    _set_folder_paths(LLM_FOLDER, [str(root / "LLM") for root in model_roots()], {".gguf"})
+    _set_folder_paths(
+        PROMPT_FOLDER,
+        [str(root / "LLM" / "prompts") for root in model_roots()],
+        {".txt", ".md"},
+    )
 
 
-def _register_folder_path(key: str, path: str, extensions: set[str]) -> None:
+def _set_folder_paths(key: str, ordered_paths: list[str], extensions: set[str]) -> None:
     entry = folder_paths.folder_names_and_paths.get(key)
-    if entry is None:
-        folder_paths.folder_names_and_paths[key] = ([path], extensions)
-        return
-    paths, _old_extensions = entry
-    if path not in paths:
-        paths.insert(0, path)
-    folder_paths.folder_names_and_paths[key] = (paths, extensions)
+    existing = entry[0] if entry else []
+    merged = list(ordered_paths)
+    for path in existing:
+        if path not in merged:
+            merged.append(path)
+    folder_paths.folder_names_and_paths[key] = (merged, extensions)
 
 
 def model_options() -> list[str]:

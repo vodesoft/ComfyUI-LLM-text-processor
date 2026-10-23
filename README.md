@@ -20,8 +20,8 @@ use an external `mmproj`.
 - Separate `RESPONSE` and `REASONING` outputs
 - System prompt presets from text files
 - Recursive model discovery from `ComfyUI/models/LLM`
-- Shared model folders via `extra_model_paths.yaml`, not only the main
-  ComfyUI folder
+- Shared model folders from the Settings -> Storage -> Models panel, not only
+  the main ComfyUI folder
 - Automatic llama.cpp setup on supported Windows systems
 - Download progress logs during automatic llama.cpp setup
 - Advanced llama.cpp options for users who need them
@@ -117,23 +117,43 @@ connected image is sent together in the same llama.cpp request.
 
 ### Shared model folders
 
-If you keep models outside the main ComfyUI folder, register those folders in
-your `extra_model_paths.yaml` file the same way you do for checkpoints. Any
-directory mapped to the `llm_text_processor_models` key is scanned in addition
-to `ComfyUI/models/LLM`, so shared model libraries appear in the `model` and
-`mmproj` dropdowns too.
+The node scans the `LLM` subfolder inside every model root, not only the main
+ComfyUI folder. A model root is any folder registered in the ComfyUI
+**Settings -> Storage -> Models** panel (the "Include Shared Directories"
+toggle and the "Add Directory" entries), or any folder added through
+`extra_model_paths.yaml`.
 
-Example `extra_model_paths.yaml`:
+For each model root, the node looks for models in:
 
-```yaml
-my_shared_library:
-  base_path: D:/Models/
-  llm_text_processor_models:
-    LLM/
+```text
+<model root>/LLM
 ```
 
-The main `ComfyUI/models/LLM` folder always takes priority when two folders
-contain a file with the same name.
+So if you add a shared models directory such as:
+
+```text
+D:\AI\ComfyUI\models
+```
+
+place your GGUF files in:
+
+```text
+D:\AI\ComfyUI\models\LLM\My-Model\model-q4_k_m.gguf
+D:\AI\ComfyUI\models\LLM\My-Model\mmproj-bf16.gguf
+```
+
+They then appear in the `model` and `mmproj` dropdowns alongside the main
+folder. The main `ComfyUI/models/LLM` folder always takes priority when two
+roots contain a file with the same name.
+
+After adding a shared directory, fully restart ComfyUI (a browser refresh is
+not enough). During startup, the console should show lines like:
+
+```text
+Adding extra search path checkpoints D:\AI\ComfyUI\models\checkpoints
+```
+
+If no such line appears, ComfyUI is not reading the shared directory.
 
 ## System Prompt Presets
 
@@ -151,6 +171,15 @@ ComfyUI/models/LLM/prompts/captioner.txt
 
 Each top-level `.txt` or `.md` file appears in the `system_prompt` dropdown.
 Choose `none` to run without a system prompt.
+
+To share system prompt presets from outside the main folder, place them in the
+`LLM/prompts` subfolder of any registered model root, for example:
+
+```text
+D:\AI\ComfyUI\models\LLM\prompts\captioner.txt
+```
+
+They appear in the `system_prompt` dropdown alongside the main folder.
 
 ## Recommended Settings
 
