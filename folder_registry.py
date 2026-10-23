@@ -24,13 +24,27 @@ def prompt_root() -> Path:
 def register_folders() -> None:
     llm_dir = llm_root()
     prompts_dir = prompt_root()
+    llm_dir.mkdir(parents=True, exist_ok=True)
+    prompts_dir.mkdir(parents=True, exist_ok=True)
 
     # ComfyUI's add_model_folder_path cannot set extensions for a new key, so we
     # register the custom keys directly with the same tuple shape ComfyUI uses.
-    llm_dir.mkdir(parents=True, exist_ok=True)
-    prompts_dir.mkdir(parents=True, exist_ok=True)
-    folder_paths.folder_names_and_paths[LLM_FOLDER] = ([str(llm_dir)], {".gguf"})
-    folder_paths.folder_names_and_paths[PROMPT_FOLDER] = ([str(prompts_dir)], {".txt"})
+    # The main folder is inserted at the front so it stays the primary source,
+    # while any shared model directories already registered through
+    # extra_model_paths.yaml are preserved behind it.
+    _register_folder_path(LLM_FOLDER, str(llm_dir), {".gguf"})
+    _register_folder_path(PROMPT_FOLDER, str(prompts_dir), {".txt", ".md"})
+
+
+def _register_folder_path(key: str, path: str, extensions: set[str]) -> None:
+    entry = folder_paths.folder_names_and_paths.get(key)
+    if entry is None:
+        folder_paths.folder_names_and_paths[key] = ([path], extensions)
+        return
+    paths, _old_extensions = entry
+    if path not in paths:
+        paths.insert(0, path)
+    folder_paths.folder_names_and_paths[key] = (paths, extensions)
 
 
 def model_options() -> list[str]:

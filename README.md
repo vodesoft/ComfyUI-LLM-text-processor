@@ -20,6 +20,8 @@ use an external `mmproj`.
 - Separate `RESPONSE` and `REASONING` outputs
 - System prompt presets from text files
 - Recursive model discovery from `ComfyUI/models/LLM`
+- Shared model folders via `extra_model_paths.yaml`, not only the main
+  ComfyUI folder
 - Automatic llama.cpp setup on supported Windows systems
 - Download progress logs during automatic llama.cpp setup
 - Advanced llama.cpp options for users who need them
@@ -113,6 +115,26 @@ model. The node has four optional image sockets, `image1` to `image4`. Each
 connected socket may be a single image or a ComfyUI image batch, and every
 connected image is sent together in the same llama.cpp request.
 
+### Shared model folders
+
+If you keep models outside the main ComfyUI folder, register those folders in
+your `extra_model_paths.yaml` file the same way you do for checkpoints. Any
+directory mapped to the `llm_text_processor_models` key is scanned in addition
+to `ComfyUI/models/LLM`, so shared model libraries appear in the `model` and
+`mmproj` dropdowns too.
+
+Example `extra_model_paths.yaml`:
+
+```yaml
+my_shared_library:
+  base_path: D:/Models/
+  llm_text_processor_models:
+    LLM/
+```
+
+The main `ComfyUI/models/LLM` folder always takes priority when two folders
+contain a file with the same name.
+
 ## System Prompt Presets
 
 Create text files in:
@@ -127,8 +149,8 @@ Example:
 ComfyUI/models/LLM/prompts/captioner.txt
 ```
 
-Each top-level `.txt` file appears in the `system_prompt` dropdown. Choose
-`none` to run without a system prompt.
+Each top-level `.txt` or `.md` file appears in the `system_prompt` dropdown.
+Choose `none` to run without a system prompt.
 
 ## Recommended Settings
 
