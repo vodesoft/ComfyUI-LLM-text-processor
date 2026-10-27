@@ -56,6 +56,38 @@ def images_to_temp_pngs(images) -> list[Path]:
     return paths
 
 
+def audio_to_temp_wav(audio) -> Path:
+    # ComfyUI Audio dict carries a waveform tensor (C, T) and its sample rate.
+    # llama.cpp reads audio from a file, so write it as a temp WAV at native rate.
+    import torchaudio
+
+    waveform = audio["waveform"]
+    sr = int(audio["sample_rate"])
+    mono = waveform[:1]  # first channel only, matching the reference encoder path
+    fd, raw = tempfile.mkstemp(prefix="llm-text-processor-audio-", suffix=".wav")
+    os.close(fd)
+    wav_path = Path(raw)
+    torchaudio.save(str(wav_path), mono.cpu(), sr)
+    return wav_path
+
+
+def video_frames_to_temp_mp4(frames, fps: int = 24) -> Path:
+    # ComfyUI IMAGE batch (T, H, W, C) -> a temp MP4 that llama.cpp decodes with ffmpeg.
+    import imageio
+
+    fd, raw = tempfile.mkstemp(prefix="llm-text-processor-video-", suffix=".mp4")
+    os.close(fd)
+    mp4_path = Path(raw)
+    frames_u8 = (frames.detach().cpu().numpy() * 255).clip(0, 255).astype("uint8")
+    writer_kwargs = {"fps": int(fps), "codec": "mp4", "quality": 8}
+    try:
+        imageio.mimwrite(str(mp4_path), list(frames_u8), format="FFMPEG", **writer_kwargs)
+    except Exception:
+        # Fall back to a plain writer if the ffmpeg backend is unavailable.
+        imageio.mimwrite(str(mp4_path), list(frames_u8), fps=int(fps))
+    return mp4_path
+
+
 def _write_temp_text_file(prefix: str, text: str) -> Path:
     fd, path = tempfile.mkstemp(prefix=prefix, suffix=".txt")
     os.close(fd)
@@ -89,6 +121,8 @@ def build_command(
     mmproj_path: Path | None,
     system_prompt_path: Path | None,
     images,
+    audios,
+    videos,
     prompt: str,
     max_tokens: int,
     temperature: float,
@@ -105,13 +139,20 @@ def build_command(
 ) -> tuple[list[str], tuple[Path | None, ...]]:
     cleanup_paths = []
     cli_paths = ensure_llama_cli_paths()
-    image_paths = []
-    connected_images = [img for img in images if img is not None] if images else []
-    if connected_images:
+    connected_images = [img for img in (images or []) if img is not None]
+    connected_audios = [aud for aud in (audios or []) if aud is not None]
+    connected_videos = [vid for vid in (videos or []) if vid is not None]
+    has_media = bool(connected_images or connected_audios or connected_videos)
+    image_paths: list[Path] = []
+    audio_paths: list[Path] = []
+    video_paths: list[Path] = []
+    if has_media:
         if mmproj_path is None:
-            raise ValueError("Image input requires a selected mmproj GGUF file.")
+            raise ValueError("Media input requires a selected mmproj GGUF file.")
         image_paths = images_to_temp_pngs(connected_images)
-        cleanup_paths.extend(image_paths)
+        audio_paths = [audio_to_temp_wav(aud) for aud in connected_audios]
+        video_paths = [video_frames_to_temp_mp4(vid) for vid in connected_videos]
+        cleanup_paths.extend(image_paths + audio_paths + video_paths)
 
     prompt_path = _write_prompt_file(prompt)
     cleanup_paths.append(prompt_path)
@@ -142,9 +183,14 @@ def build_command(
 
     command.extend(["-f", str(prompt_path)])
 
-    if image_paths:
+    if has_media:
         command.extend(["--mmproj", str(mmproj_path)])
+    if image_paths:
         command.extend(["--image", ",".join(str(path) for path in image_paths)])
+    if audio_paths:
+        command.extend(["--audio", ",".join(str(path) for path in audio_paths)])
+    if video_paths:
+        command.extend(["--video", ",".join(str(path) for path in video_paths)])
 
     if extra_args:
         command.extend(extra_args)
