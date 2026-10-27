@@ -216,6 +216,8 @@ class LLMTextProcessor:
             mmproj_path=mmproj_path,
             system_prompt_path=system_prompt_path,
             images=(image1, image2, image3, image4),
+            audios=None,
+            videos=None,
             prompt=prompt,
             max_tokens=max_tokens,
             temperature=temperature,
