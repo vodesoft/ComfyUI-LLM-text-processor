@@ -18,12 +18,12 @@ from .llama_cli import (
 from comfy_api.latest import ComfyExtension, io
 
 
-class LLMTextProcessor(io.ComfyNode):
+class LLMTextProcessorVL(io.ComfyNode):
     @classmethod
     def define_schema(cls):
         return io.Schema(
-            node_id="LLMTextProcessor",
-            display_name="LLM Text Processor",
+            node_id="LLMTextProcessorVL",
+            display_name="LLM Text Processor VL",
             description="Run a GGUF LLM (optionally with vision/audio/video media) over a prompt.",
             category="advanced/LLM Text Processor",
             inputs=[
@@ -225,6 +225,6 @@ class LLMTextProcessor(io.ComfyNode):
 
 
 
-class LLMTextProcessorExtension(ComfyExtension):
+class LLMTextProcessorVLExtension(ComfyExtension):
     async def get_node_list(self):
-        return [LLMTextProcessor]
+        return [LLMTextProcessorVL]

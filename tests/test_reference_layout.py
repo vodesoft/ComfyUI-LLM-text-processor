@@ -87,7 +87,7 @@ class ReferenceLayoutOrderingTests(unittest.TestCase):
             "ref_image_2": None,
             "ref_image_3": MediaToken("c"),
         }
-        images, videos, audios = nodes.LLMTextProcessor._ordered_media(
+        images, videos, audios = nodes.LLMTextProcessorVL._ordered_media(
             ref_images=ref_images,
             first_frame=None,
             also_ref_first_frame=False,
@@ -102,7 +102,7 @@ class ReferenceLayoutOrderingTests(unittest.TestCase):
         ref_images = {"ref_image_0": MediaToken("a")}
         first = MediaToken("first")
 
-        images_off, _, _ = nodes.LLMTextProcessor._ordered_media(
+        images_off, _, _ = nodes.LLMTextProcessorVL._ordered_media(
             ref_images=ref_images,
             first_frame=first,
             also_ref_first_frame=False,
@@ -112,7 +112,7 @@ class ReferenceLayoutOrderingTests(unittest.TestCase):
         )
         self.assertEqual([m.tag for m in images_off], ["a"])
 
-        images_on, _, _ = nodes.LLMTextProcessor._ordered_media(
+        images_on, _, _ = nodes.LLMTextProcessorVL._ordered_media(
             ref_images=ref_images,
             first_frame=first,
             also_ref_first_frame=True,
@@ -125,7 +125,7 @@ class ReferenceLayoutOrderingTests(unittest.TestCase):
 
     def test_last_frame_is_never_a_picture(self) -> None:
         nodes = import_nodes()
-        images, videos, audios = nodes.LLMTextProcessor._ordered_media(
+        images, videos, audios = nodes.LLMTextProcessorVL._ordered_media(
             ref_images={},
             first_frame=None,
             also_ref_first_frame=False,
@@ -145,7 +145,7 @@ class ReferenceLayoutOrderingTests(unittest.TestCase):
         ref_video_audios = {"ref_video_audio_1": MediaToken("s1")}
         ref_audios = {"ref_audio_0": MediaToken("standalone0")}
 
-        images, videos, audios = nodes.LLMTextProcessor._ordered_media(
+        images, videos, audios = nodes.LLMTextProcessorVL._ordered_media(
             ref_images={},
             first_frame=None,
             also_ref_first_frame=False,
