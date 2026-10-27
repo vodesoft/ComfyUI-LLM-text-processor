@@ -29,6 +29,7 @@ def _fake_comfy_modules() -> dict[str, types.ModuleType]:
 
     # Stub the new-API surface so nodes.py imports without real ComfyUI present.
     io_mod = types.ModuleType("comfy_api.io")
+    io_mod.ComfyNode = object
     latest = types.ModuleType("comfy_api.latest")
     latest.ComfyExtension = object
     latest.io = io_mod

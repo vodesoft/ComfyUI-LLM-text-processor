@@ -18,7 +18,7 @@ from .llama_cli import (
 from comfy_api.latest import ComfyExtension, io
 
 
-class LLMTextProcessor:
+class LLMTextProcessor(io.ComfyNode):
     @classmethod
     def define_schema(cls):
         return io.Schema(
@@ -92,10 +92,6 @@ class LLMTextProcessor:
             ],
         )
 
-    FUNCTION = "generate"
-    CATEGORY = "LLM Text Processor"
-    TITLE = "LLM Text Processor"
-
     @classmethod
     def validate_inputs(
         cls,
@@ -140,8 +136,9 @@ class LLMTextProcessor:
         # last_frame is never a Picture in minimax (keyframe pin only); intentionally unused here.
         return images_in_order, videos_in_order, audios_in_order
 
-    def generate(
-        self,
+    @classmethod
+    def execute(
+        cls,
         model: str,
         mmproj: str,
         system_prompt: str,
@@ -169,7 +166,7 @@ class LLMTextProcessor:
         extra_args: str = "",
     ):
         if not enable_processing:
-            return (prompt, "", "")
+            return io.NodeOutput(prompt, "", "")
 
         current_models = model_options()
         current_mmprojs = mmproj_options()
@@ -189,7 +186,7 @@ class LLMTextProcessor:
         system_prompt_path = full_system_prompt_path(system_prompt)
         parsed_extra_args = split_extra_args(extra_args)
 
-        images_in_order, videos_in_order, audios_in_order = self._ordered_media(
+        images_in_order, videos_in_order, audios_in_order = cls._ordered_media(
             ref_images=ref_images or {},
             first_frame=first_frame,
             also_ref_first_frame=also_ref_first_frame,
@@ -224,7 +221,7 @@ class LLMTextProcessor:
             timeout_seconds=timeout_seconds,
             cleanup_paths=cleanup_paths,
         )
-        return (response, reasoning_text, perf)
+        return io.NodeOutput(response, reasoning_text, perf)
 
 
 
