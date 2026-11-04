@@ -15,6 +15,7 @@ from .llama_cli import (
     run_llama_cli,
     split_extra_args,
 )
+from .legacy_processor import LLMTextProcessor
 from comfy_api.latest import ComfyExtension, io
 
 
@@ -227,4 +228,4 @@ class LLMTextProcessorVL(io.ComfyNode):
 
 class LLMTextProcessorVLExtension(ComfyExtension):
     async def get_node_list(self):
-        return [LLMTextProcessorVL]
+        return [LLMTextProcessorVL, LLMTextProcessor]
