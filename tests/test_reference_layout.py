@@ -78,7 +78,7 @@ class MediaToken:
 
 class ReferenceLayoutOrderingTests(unittest.TestCase):
     # These pin the minimax-h3 reference layout: separate ordinal namespaces per media type,
-    # so order only matters within each list. last_frame is never a Picture.
+    # so order only matters within each list. first_frame leads and last_frame trails as Pictures.
     def test_images_follow_socket_order(self) -> None:
         nodes = import_nodes()
         ref_images = {
@@ -90,51 +90,50 @@ class ReferenceLayoutOrderingTests(unittest.TestCase):
         images, videos, audios = nodes.LLMTextProcessorVL._ordered_media(
             ref_images=ref_images,
             first_frame=None,
-            also_ref_first_frame=False,
             ref_videos={},
             ref_video_audios={},
             ref_audios={},
         )
         self.assertEqual([m.tag for m in images], ["a", "b", "c"])
 
-    def test_first_frame_becomes_next_picture_only_when_flag_set(self) -> None:
+    def test_first_frame_leads_and_last_frame_trails(self) -> None:
         nodes = import_nodes()
         ref_images = {"ref_image_0": MediaToken("a")}
         first = MediaToken("first")
 
-        images_off, _, _ = nodes.LLMTextProcessorVL._ordered_media(
+        images_no_last, _, _ = nodes.LLMTextProcessorVL._ordered_media(
             ref_images=ref_images,
             first_frame=first,
-            also_ref_first_frame=False,
             ref_videos={},
             ref_video_audios={},
             ref_audios={},
         )
-        self.assertEqual([m.tag for m in images_off], ["a"])
+        # first_frame always leads; last_frame absent here.
+        self.assertEqual([m.tag for m in images_no_last], ["first", "a"])
 
-        images_on, _, _ = nodes.LLMTextProcessorVL._ordered_media(
+        images_both, _, _ = nodes.LLMTextProcessorVL._ordered_media(
             ref_images=ref_images,
             first_frame=first,
-            also_ref_first_frame=True,
             ref_videos={},
             ref_video_audios={},
             ref_audios={},
+            last_frame=MediaToken("last"),
         )
-        # Appended after user refs so it is the next Picture ordinal, like minimax.
-        self.assertEqual([m.tag for m in images_on], ["a", "first"])
+        # first_frame leads, refs follow, last_frame trails.
+        self.assertEqual([m.tag for m in images_both], ["first", "a", "last"])
 
-    def test_last_frame_is_never_a_picture(self) -> None:
+    def test_frames_always_analyzed(self) -> None:
         nodes = import_nodes()
         images, videos, audios = nodes.LLMTextProcessorVL._ordered_media(
             ref_images={},
             first_frame=None,
-            also_ref_first_frame=False,
             last_frame=MediaToken("last"),
             ref_videos={},
             ref_video_audios={},
             ref_audios={},
         )
-        self.assertEqual(images, [])
+        # last_frame is now sent as a trailing Picture even with no refs.
+        self.assertEqual([m.tag for m in images], ["last"])
 
     def test_audio_soundtrack_precedes_standalone_and_videos_keep_order(self) -> None:
         nodes = import_nodes()
@@ -148,7 +147,6 @@ class ReferenceLayoutOrderingTests(unittest.TestCase):
         images, videos, audios = nodes.LLMTextProcessorVL._ordered_media(
             ref_images={},
             first_frame=None,
-            also_ref_first_frame=False,
             last_frame=None,
             ref_videos=ref_videos,
             ref_video_audios=ref_video_audios,

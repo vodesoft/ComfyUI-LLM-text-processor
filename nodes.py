@@ -71,11 +71,9 @@ class LLMTextProcessorVL(io.ComfyNode):
                     template=io.Autogrow.TemplatePrefix(
                         input=io.Image.Input("ref_image"), prefix="ref_image_", min=0, max=9)),
                 io.Image.Input("first_frame", optional=True,
-                               tooltip="First frame; becomes the next Picture only when also_ref_first_frame is set."),
+                               tooltip="First frame. Always sent as the leading <Picture> to the LLM."),
                 io.Image.Input("last_frame", optional=True,
-                               tooltip="Last frame keyframe pin. Never sent as a Picture to the LLM."),
-                io.Boolean.Input("also_ref_first_frame", default=False, advanced=True,
-                                 tooltip="Also expose first_frame as the next <Picture N> reference."),
+                               tooltip="Last frame. Always sent as the trailing <Picture> to the LLM."),
                 io.Autogrow.Input("ref_videos", optional=True,
                     template=io.Autogrow.TemplatePrefix(
                         input=io.Image.Input("ref_video"), prefix="ref_video_", min=0, max=3)),
@@ -107,22 +105,23 @@ class LLMTextProcessorVL(io.ComfyNode):
         cls,
         ref_images: dict,
         first_frame,
-        also_ref_first_frame: bool,
         ref_videos: dict,
         ref_video_audios: dict,
         ref_audios: dict,
         last_frame=None,
     ):
-        # Build three ordered lists matching minimax-h3 reference layout. Order only matters
-        # within each type (minimax uses separate <Picture>/<Video>/<Audio> ordinal namespaces).
+        # Build three ordered lists. Picture order is fixed: first_frame leads, then user refs
+        # in index order, then last_frame trails. Both frames are always analyzed by the LLM.
         def _by_index(mapping):
             items = [(int(key.rsplit("_", 1)[-1]), value) for key, value in mapping.items() if value is not None]
             return [value for _, value in sorted(items, key=lambda pair: pair[0])]
 
-        images_in_order = _by_index(ref_images)
-        if also_ref_first_frame and first_frame is not None:
-            # Appended after user refs so it becomes the next Picture ordinal, like minimax.
+        images_in_order = []
+        if first_frame is not None:
             images_in_order.append(first_frame[:1])
+        images_in_order.extend(_by_index(ref_images))
+        if last_frame is not None:
+            images_in_order.append(last_frame[:1])
 
         videos_in_order = _by_index(ref_videos)
 
@@ -159,7 +158,6 @@ class LLMTextProcessorVL(io.ComfyNode):
         ref_images: dict,
         first_frame=None,
         last_frame=None,
-        also_ref_first_frame: bool = False,
         ref_videos: dict | None = None,
         ref_video_audios: dict | None = None,
         ref_audios: dict | None = None,
@@ -190,7 +188,6 @@ class LLMTextProcessorVL(io.ComfyNode):
         images_in_order, videos_in_order, audios_in_order = cls._ordered_media(
             ref_images=ref_images or {},
             first_frame=first_frame,
-            also_ref_first_frame=also_ref_first_frame,
             ref_videos=ref_videos or {},
             ref_video_audios=ref_video_audios or {},
             ref_audios=ref_audios or {},
